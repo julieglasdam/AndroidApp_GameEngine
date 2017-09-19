@@ -1,11 +1,16 @@
 package com.example.julieglasdam.gameengine;
 
 import android.app.Activity;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Rect;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -22,7 +27,7 @@ import java.util.List;
 * We use events because, we want to save battery, so the program only runs when something happens
 * we use threads so we can change the code that runs, so everything doesn't run at once*/
 
-public abstract class GameEngine extends Activity implements Runnable
+public abstract class GameEngine extends Activity implements Runnable, SensorEventListener
 {
 
     private Thread mainLoopThread;
@@ -40,6 +45,10 @@ public abstract class GameEngine extends Activity implements Runnable
     Rect dst = new Rect();
 
     private TouchHandler touchHandler;
+    private TouchEventPool touchEventPool = new TouchEventPool();
+    private List<TouchEvent> touchEventBuffer = new ArrayList<>();
+
+    private float[] accelerometer = new float[3];
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -64,8 +73,22 @@ public abstract class GameEngine extends Activity implements Runnable
         {
             setVirtualScreen(320, 480);
         }
-       // touchHandler =
+        touchHandler = new MultiTouchHandler(surfaceView, touchEventBuffer, touchEventPool);
 
+        SensorManager sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
+        if (sensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER).size() != 0)  // check size of list
+        {
+            Sensor accelerometer = sensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER).get(0);
+            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
+        }
+
+    }
+
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+
+    public void onSensorChanged(SensorEvent sensorEvent)
+    {
+        System.arraycopy(sensorEvent.values, 0, accelerometer, 0, 3);
     }
 
     public void setVirtualScreen(int width, int height)
@@ -163,12 +186,28 @@ public abstract class GameEngine extends Activity implements Runnable
     }
 
     // Methods for when the screen is touched
-    public boolean isTouchDown(int pointer) {return false;}
-    public int getTouchX(int pointer) {return 0;}
-    public int getTouchY(int pointer) {return 0;}
+    public boolean isTouchDown(int pointer)
+    {
+        return touchHandler.isTouchDown(pointer);
+    }
+    public int getTouchX(int pointer)
+    {
+        int virtualX = 0;
+        virtualX = (int)((float)touchHandler.getTouchX(pointer)/(float)surfaceView.getWidth()*virtualScreen.getWidth()); // Get some other x than the real x
+        return virtualX;
+    }
+    public int getTouchY(int pointer)
+    {
+        int virtualY = 0;
+        virtualY = (int)((float)touchHandler.getTouchY(pointer)/(float)surfaceView.getHeight()*virtualScreen.getHeight()); // Get some other x than the real x
+        return virtualY;
+    }
 
   //  public List<TouchEvent> getTouchEvents() {return null;}
-    public float[] getAccelerometer(){return null;}
+    public float[] getAccelerometer()
+    {
+        return accelerometer;
+    }
 
     public void onPause()
     {
@@ -191,6 +230,9 @@ public abstract class GameEngine extends Activity implements Runnable
         catch (Exception e)
         {
             Log.d("GameEngine", "error when waiting for Mainloop thread to die");
+        }
+        if (isFinishing()) {
+            ((SensorManager)getSystemService(Context.SENSOR_SERVICE)).unregisterListener(this);
         }
     }
 
