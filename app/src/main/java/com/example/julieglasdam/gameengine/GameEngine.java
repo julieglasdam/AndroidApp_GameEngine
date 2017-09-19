@@ -64,7 +64,7 @@ public abstract class GameEngine extends Activity implements Runnable
         {
             setVirtualScreen(320, 480);
         }
-        touchHandler =
+       // touchHandler =
 
     }
 

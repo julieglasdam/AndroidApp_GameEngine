@@ -19,7 +19,7 @@ public class TestScreen extends Screen
     public void update(float deltaTime) {
         gameEngine.clearFrameBuffer(Color.BLUE);
         gameEngine.drawBitMap(bob, 10, 10);
-        gameEngine.drawBitmap(bob, 100, 200, 0, 0, 64, 64);
+       // gameEngine.drawBitmap(bob, 100, 200, 0, 0, 64, 64);
     }
 
     @Override
