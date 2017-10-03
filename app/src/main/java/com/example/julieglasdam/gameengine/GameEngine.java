@@ -2,16 +2,18 @@ package com.example.julieglasdam.gameengine;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Rect;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.support.v7.app.AppCompatActivity;
+import android.media.AudioAttributes;
+import android.media.AudioManager;
+import android.media.SoundPool;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -40,6 +42,7 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
     private Screen screen;
     private Canvas canvas;
     private Bitmap virtualScreen;
+    private SoundPool soundPool;
 
     Rect src = new Rect();
     Rect dst = new Rect();
@@ -47,8 +50,11 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
     private TouchHandler touchHandler;
     private TouchEventPool touchEventPool = new TouchEventPool();
     private List<TouchEvent> touchEventBuffer = new ArrayList<>();
+    private List<TouchEvent> touchEventCopied = new ArrayList<>();
 
     private float[] accelerometer = new float[3];
+
+    private int framesPerSecond = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -63,6 +69,26 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
         setContentView(surfaceView);
         surfaceHolder = surfaceView.getHolder();
 
+
+        touchHandler = new MultiTouchHandler(surfaceView, touchEventBuffer, touchEventPool);
+
+        SensorManager sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
+        if (sensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER).size() != 0)  // check size of list
+        {
+            Sensor accelerometer = sensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER).get(0);
+            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
+        }
+
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);
+        SoundPool.Builder sBuilder = new SoundPool.Builder();
+        sBuilder.setMaxStreams(20);
+        AudioAttributes.Builder audioAttrBuilder = new AudioAttributes.Builder();
+        audioAttrBuilder.setUsage(AudioAttributes.USAGE_GAME);
+        AudioAttributes audioAttr = audioAttrBuilder.build();
+        sBuilder.setAudioAttributes(audioAttr);
+        this.soundPool = sBuilder.build();
+
+       // this.soundPool = new SoundPool(20, AudioManager.STREAM_MUSIC, 0);
         screen = createScreen();
         // Check if display is horizontal or vertical
         if (surfaceView.getWidth() > surfaceView.getHeight())
@@ -73,14 +99,6 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
         {
             setVirtualScreen(320, 480);
         }
-        touchHandler = new MultiTouchHandler(surfaceView, touchEventBuffer, touchEventPool);
-
-        SensorManager sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
-        if (sensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER).size() != 0)  // check size of list
-        {
-            Sensor accelerometer = sensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER).get(0);
-            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
-        }
 
     }
 
@@ -89,6 +107,43 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
     public void onSensorChanged(SensorEvent sensorEvent)
     {
         System.arraycopy(sensorEvent.values, 0, accelerometer, 0, 3);
+        accelerometer[0] = -1.0f * accelerometer[0];
+    }
+
+    public float[] getAccelerometer()
+    {
+        return accelerometer;
+    }
+
+    private void fillEvents()
+    {
+        synchronized (touchEventBuffer)
+        {
+            int stop = touchEventBuffer.size();
+            for (int i = 0; i < stop; i++)
+            {
+                touchEventCopied.add(touchEventBuffer.get(i)); // Copy objects from one list to the other
+            }
+            touchEventBuffer.clear();
+        }
+    }
+
+    private void freeEvents()
+    {
+        synchronized (touchEventCopied)
+        {
+            int stop = touchEventCopied.size();
+            for (int i = 0; i < stop; i++)
+            {
+                touchEventPool.free(touchEventCopied.get(i));
+            }
+            touchEventCopied.clear();
+        }
+    }
+
+    public List<TouchEvent> getTouchEvents()
+    {
+        return touchEventCopied;
     }
 
     public void setVirtualScreen(int width, int height)
@@ -150,9 +205,29 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
         }
     }
 
-  //  public Music loadMusic(String filename) {return null;}
+    public Music loadMusic(String filename) {
+        try {
+            AssetFileDescriptor assetFileDescriptor = getAssets().openFd(filename);
+            return new Music(assetFileDescriptor);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not load music file: " + filename);
+        }
+    }
 
-   // public Sound loadSound(String filename) {return null;}
+    public Sound loadSound(String filename)
+    {
+        try
+        {
+            AssetFileDescriptor assetFileDescriptor = getAssets().openFd(filename);
+            int soundId = soundPool.load(assetFileDescriptor, 0);
+            Sound sound = new Sound(soundPool, soundId);
+            return sound;
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException("Could not load sound from file: " + filename);
+        }
+    }
 
     public void clearFrameBuffer(int color) {
         canvas.drawColor(color);
@@ -204,10 +279,7 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
     }
 
   //  public List<TouchEvent> getTouchEvents() {return null;}
-    public float[] getAccelerometer()
-    {
-        return accelerometer;
-    }
+
 
     public void onPause()
     {
@@ -216,6 +288,7 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
             // Check is the app is shutting down or just paused
             if (isFinishing()) // Method inherited from Activity
             {
+                soundPool.release();
                 stateChanges.add(State.Disposed);
             }
             else
@@ -254,6 +327,10 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
     through array to figure out what needs to be done */
     public void run()
     {
+     //   int frames = 0;
+        long startTime = System.nanoTime();
+        long currentTime = startTime;
+        float deltaTime = 0;
         while(true)
         {
             synchronized (stateChanges) // Lock stateChanges, so it can't be accesed by multiple threads at once
@@ -294,10 +371,15 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
                    continue; // Start from the beginning of the loop
                 }
                 Canvas canvas = surfaceHolder.lockCanvas(); // gets a canvas and locks it
-                // canvas.drawColor(Color.RED);
+                fillEvents();
+                currentTime = System.nanoTime();
+                deltaTime = (currentTime - startTime) / 1000000000.0f;
                 if (screen != null) {
-                    screen.update(0); // parameter doesn't matter now
+                    screen.update(deltaTime);
                 }
+                startTime = currentTime;
+                freeEvents();
+
                 // copy objects from virtual screen to actual screen
                 src.left = 0;
                 src.top = 0;
@@ -311,6 +393,16 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
 
                 surfaceHolder.unlockCanvasAndPost(canvas); // post updates
             }
+            // Get frames per second
+     /*       frames++;
+            if (System.nanoTime() - startTime > 1000000000) {
+                framesPerSecond = frames;
+                frames = 0;
+                startTime = System.nanoTime();
+                Log.d("MainLoop", "Frames per second: " + framesPerSecond + "*************");
+            }*/
         }
+
     }
+
 }

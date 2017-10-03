@@ -51,7 +51,7 @@ public class MultiTouchHandler implements TouchHandler, View.OnTouchListener
                 {
                     touchEventBuffer.add(touchEvent);
                 }
-                break;
+                return true;
 
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_POINTER_UP:
@@ -92,7 +92,7 @@ public class MultiTouchHandler implements TouchHandler, View.OnTouchListener
                 break;
         }
 
-        return false;
+        return true;
     }
 
     @Override
