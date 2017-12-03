@@ -6,10 +6,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by julieglasdam on 10/10/2017.
+ * Created by julieglasdam on 31/10/2017.
  */
 
-public class World {
+public class WorldLevel2 {
     public static final float MIN_X = 0;
     public static final float MAX_X = 319;
     public static final float MIN_Y = 37;
@@ -19,10 +19,9 @@ public class World {
     List<Block> blocks = new ArrayList<>();
     GameEngine gameEngine;
     boolean gameOver = false;
-    boolean done = false;
     int lives = 3;
 
-    public World(GameEngine ge, CollisionListener listener) {
+    public WorldLevel2(GameEngine ge, CollisionListener listener) {
         this.gameEngine = ge;
         generateBlocks();
     }
@@ -55,7 +54,7 @@ public class World {
 
 
         if (ball.y > MAX_Y - ball.HEIGHT) {
-           gameOver = true;
+            gameOver = true;
             return;
         }
 
@@ -99,9 +98,9 @@ public class World {
     }
 
     private void collideBallPaddle() {
-    if (ball.y + Ball.HEIGHT >= paddle.y && ball.x < paddle.x + Paddle.WIDTH && ball.x + Ball.WIDTH > paddle.x) {
-        ball.y = (int)(paddle.y - Ball.HEIGHT - 2);
-        ball.vy = -ball.vy;
-    }
+        if (ball.y + Ball.HEIGHT >= paddle.y && ball.x < paddle.x + Paddle.WIDTH && ball.x + Ball.WIDTH > paddle.x) {
+            ball.y = (int)(paddle.y - Ball.HEIGHT - 2);
+            ball.vy = -ball.vy;
+        }
     }
 }

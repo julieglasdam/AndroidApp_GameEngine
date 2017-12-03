@@ -10,15 +10,14 @@ import com.example.julieglasdam.gameengine.TouchEvent;
 import java.util.List;
 
 /**
- * Created by julieglasdam on 03/10/2017.
+ * Created by julieglasdam on 31/10/2017.
  */
 
-public class GameScreen extends Screen{
+public class GameScreenL2 extends Screen {
     enum State {
         Paused,
         Running,
-        GameOver,
-        Level2
+        GameOver
     }
 
     World world;
@@ -27,11 +26,11 @@ public class GameScreen extends Screen{
     Bitmap background = null;
     Bitmap resume = null;
     Bitmap gameOver = null;
-    State state = State.Running;
+    GameScreen.State state = GameScreen.State.Running;
     Sound bounceSound = null;
     Sound blockSound = null;
 
-    public GameScreen(GameEngine gameEngine) {
+    public GameScreenL2(GameEngine gameEngine) {
         super(gameEngine);
         world = new World(gameEngine, new CollisionListener() {
             public void collisionWall() {
@@ -60,18 +59,14 @@ public class GameScreen extends Screen{
 
     @Override
     public void update(float deltaTime) {
-       if (world.gameOver) {
-           state = State.GameOver;
-       }
-       else if (world.done) {
-           state = State.Level2; // In this case update to new screen
-       }
-
-       if (state == State.Paused && gameEngine.getTouchEvents().size() > 0) { // Check for paused and if the screen is touched
-            state = State.Running;
+        if (world.gameOver) {
+            state = GameScreen.State.GameOver;
+        }
+        if (state == GameScreen.State.Paused && gameEngine.getTouchEvents().size() > 0) { // Check for paused and if the screen is touched
+            state = GameScreen.State.Running;
         }
 
-        if (state == State.GameOver && gameEngine.getTouchEvents().size() > 0) {
+        if (state == GameScreen.State.GameOver && gameEngine.getTouchEvents().size() > 0) {
             List<TouchEvent> events = gameEngine.getTouchEvents();
             for (int i = 0; i < events.size(); i++) {
                 if (events.get(i).type == TouchEvent.TouchEventType.Up) {
@@ -82,30 +77,30 @@ public class GameScreen extends Screen{
 
         }
 
-        if (state == State.Running && gameEngine.getTouchY(0) < 38 && gameEngine.getTouchX(0) > 320-38) {
-            state = State.Paused;
+        if (state == GameScreen.State.Running && gameEngine.getTouchY(0) < 38 && gameEngine.getTouchX(0) > 320-38) {
+            state = GameScreen.State.Paused;
             return;
         }
 
         gameEngine.drawBitMap(background, 0, 0);
-        if (state == State.Running) {
+        if (state == GameScreen.State.Running) {
             world.update(deltaTime, gameEngine.getAccelerometer()[0]);
         }
         renderer.render();
 
 
-        if (state == State.Paused) {
+        if (state == GameScreen.State.Paused) {
             gameEngine.drawBitMap(resume, 160 - resume.getWidth()/2, 240 - resume.getHeight()/2);
         }
 
-        if (state == State.GameOver) {
+        if (state == GameScreen.State.GameOver) {
             gameEngine.drawBitMap(gameOver, 160 - gameOver.getWidth()/2, 240 - gameOver.getHeight()/2);
         }
     }
 
     @Override
     public void pause() {
-    if (state == State.Running) state = State.Paused;
+        if (state == GameScreen.State.Running) state = GameScreen.State.Paused;
     }
 
     @Override

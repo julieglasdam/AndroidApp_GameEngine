@@ -8,6 +8,7 @@ package com.example.julieglasdam.gameengine;
 public enum State
 {
     Running,
+    Level2,
     Paused,
     Resumed,
     Disposed
