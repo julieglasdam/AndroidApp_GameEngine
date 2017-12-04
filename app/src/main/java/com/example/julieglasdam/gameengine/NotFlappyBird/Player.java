@@ -1,4 +1,4 @@
-package com.example.julieglasdam.gameengine.NotGearJack;
+package com.example.julieglasdam.gameengine.NotFlappyBird;
 
 import android.graphics.Bitmap;
 
@@ -7,13 +7,13 @@ import android.graphics.Bitmap;
  */
 
 public class Player {
-    private final int WIDTH = 48;
-    private final int HEIGHT = 65;
+    private final int WIDTH = 34;
+    private final int HEIGHT = 24;
     private final int numberOfSprites = 10;
     private final int x = 50;
     private int y;
     private int animFrame;
-    private int jumpHeight = 50;
+    private int jumpHeight = 40;
 
 
     public Player(Bitmap bitmap, int y){

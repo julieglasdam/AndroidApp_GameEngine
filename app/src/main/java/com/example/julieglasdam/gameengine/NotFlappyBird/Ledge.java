@@ -1,4 +1,4 @@
-package com.example.julieglasdam.gameengine.NotGearJack;
+package com.example.julieglasdam.gameengine.NotFlappyBird;
 
 import android.graphics.Bitmap;
 

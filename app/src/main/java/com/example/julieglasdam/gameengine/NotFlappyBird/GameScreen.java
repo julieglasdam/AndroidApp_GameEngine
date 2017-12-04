@@ -1,7 +1,6 @@
-package com.example.julieglasdam.gameengine.NotGearJack;
+package com.example.julieglasdam.gameengine.NotFlappyBird;
 
 import android.graphics.Bitmap;
-import android.util.Log;
 
 import com.example.julieglasdam.gameengine.GameEngine;
 import com.example.julieglasdam.gameengine.Screen;
@@ -14,6 +13,18 @@ import java.util.List;
  */
 
 
+/*
+* To do:
+* - collision detection for sider, top og bund - man dør når man rammer
+* - bolde der ændrer farve (spritesheets)
+* - counter der tæller hvor mange stopler man er nået forbi
+* - ændr start skærm, til fugl der flyver
+* - slut skærm, vis high score
+* - arbejd med pause, og de andre ting
+* - Flyt logikken over i en world klasse
+*
+* */
+
 public class GameScreen extends Screen {
     private final int GRAVITY = 3;
 
@@ -22,6 +33,7 @@ public class GameScreen extends Screen {
     private Bitmap background = null;
     private Bitmap ledge01 = null; // w: 300
     private Bitmap ledge02 = null; // w: 200
+    private Bitmap ledge = null; // w: 200
     private Bitmap spritesheet = null;
 
     private Player player;
@@ -32,10 +44,11 @@ public class GameScreen extends Screen {
     // Load the textures
     public GameScreen(GameEngine gameEngine) {
         super(gameEngine);
-        background = gameEngine.loadBitmap("notgearjackassets/background.png");
-        ledge01 = gameEngine.loadBitmap("notgearjackassets/ledge01.png");
-        ledge02 = gameEngine.loadBitmap("notgearjackassets/ledge02.png");
-        spritesheet = gameEngine.loadBitmap("notgearjackassets/spritesheet.png");
+        background = gameEngine.loadBitmap("notflappybirdassets/background.png");
+        ledge01 = gameEngine.loadBitmap("notflappybirdassets/ledge01.png");
+        ledge02 = gameEngine.loadBitmap("notflappybirdassets/ledge02.png");
+        ledge = gameEngine.loadBitmap("notflappybirdassets/ledge.jpg");
+        spritesheet = gameEngine.loadBitmap("notflappybirdassets/flappy.png");
 
 
         // Initialize all the ledges
@@ -81,9 +94,9 @@ public class GameScreen extends Screen {
         player.setY(player.getY()+GRAVITY);
 
         // Move ledges
-        for (int i = 0; i < size-1; i++) {
-            if (ledges.get(i).getX() == -500){
-                ledges.get(i).moveLedge(1700);
+        for (int i = 0; i < size; i++) {
+            if (ledges.get(i).getX() == -200){
+                ledges.get(i).moveLedge(900);
             }
         }
 
@@ -114,12 +127,15 @@ public class GameScreen extends Screen {
     // Draw all the ledges
     private void createWorld() {
         // Add ledges to list, with the correct attributes
-        ledges.add(new Ledge(ledge01, 0, 270, 300, 63));
-        ledges.add(new Ledge(ledge02, 400, 250, 200, 90));
-        ledges.add(new Ledge(ledge02, 700, 270, 400, 63));
-        ledges.add(new Ledge(ledge02, 1000, 270, 400, 63));
-        ledges.add(new Ledge(ledge01, 1300, 270, 300, 63));
-        ledges.add(new Ledge(ledge01, 1700, 270, 300, 63));
+        // x, y, w, h
+        ledges.add(new Ledge(ledge, 300, 0, 80, 100));
+        ledges.add(new Ledge(ledge, 300, 250, 3, 100));
+
+        ledges.add(new Ledge(ledge, 600, 0, 80, 100));
+        ledges.add(new Ledge(ledge, 600, 270, 50, 100));
+
+        ledges.add(new Ledge(ledge, 900, 0, 80, 100));
+        ledges.add(new Ledge(ledge, 900, 270, 50, 100));
     }
 
     // Create each individual ledge, and add collision detection for it

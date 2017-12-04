@@ -13,8 +13,8 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <activity android:name=".NotGearJack.NotGearJack" android:configChanges="keyboard|keyboardHidden|orientation"
-            android:screenOrientation="landscape">
+        <activity android:name=".NotFlappyBird.NotFlappyBird" android:configChanges="keyboard|keyboardHidden|orientation"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
