@@ -6,14 +6,16 @@ import android.graphics.Bitmap;
  * Created by julieglasdam on 13/11/2017.
  */
 
-public class Ledge {
+public class Ledge
+{
     private Bitmap bitmap = null;
     private int x;
     private int y;
     private int width;
     private int height;
 
-    public Ledge(Bitmap bitmap, int x, int y, int width, int height) {
+    public Ledge(Bitmap bitmap, int x, int y, int width, int height)
+    {
         this.bitmap = bitmap;
         this.x = x;
         this.y = y;

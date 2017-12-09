@@ -6,6 +6,7 @@ import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
@@ -288,13 +289,14 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
         if (font == null) {
             throw new RuntimeException("Could not load font");
         }
+        Log.d("******", ""+font);
         return font;
     }
 
     public void drawText(Typeface font, String text, int x, int y, int color, int size) {
         paint.setTypeface(font);
         paint.setTextSize(size);
-        paint.setColor(color);
+        paint.setColor(Color.WHITE);
         canvas.drawText(text, x, y, paint);
     }
 

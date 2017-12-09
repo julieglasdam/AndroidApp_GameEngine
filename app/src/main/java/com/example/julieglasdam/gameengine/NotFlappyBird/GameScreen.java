@@ -1,6 +1,8 @@
 package com.example.julieglasdam.gameengine.NotFlappyBird;
 
 import android.graphics.Bitmap;
+import android.graphics.Typeface;
+import android.util.Log;
 
 import com.example.julieglasdam.gameengine.GameEngine;
 import com.example.julieglasdam.gameengine.Screen;
@@ -13,70 +15,66 @@ import java.util.List;
  */
 
 
-/*
-* To do:
-* - collision detection for sider, top og bund - man dør når man rammer
-* - bolde der ændrer farve (spritesheets)
-* - counter der tæller hvor mange stopler man er nået forbi
-* - ændr start skærm, til fugl der flyver
-* - slut skærm, vis high score
-* - arbejd med pause, og de andre ting
-* - Flyt logikken over i en world klasse
-*
-* */
 
-public class GameScreen extends Screen {
-    private final int GRAVITY = 3;
-
-    private int scroll = 0;
-    private List<Ledge> ledges = new ArrayList<>();
+public class GameScreen extends Screen
+{
+    private int globalTime = 0;
+    private int deathCountdown = 0;
     private Bitmap background = null;
-    private Bitmap ledge01 = null; // w: 300
-    private Bitmap ledge02 = null; // w: 200
-    private Bitmap ledge = null; // w: 200
-    private Bitmap spritesheet = null;
 
     private Player player;
+    private Typeface font = null;
+    private World world;
+
+    private boolean isPaused = false;
 
 
-
-
-    // Load the textures
-    public GameScreen(GameEngine gameEngine) {
+    public GameScreen(GameEngine gameEngine, Player player)
+    {
         super(gameEngine);
+        this.player = player;
         background = gameEngine.loadBitmap("notflappybirdassets/background.png");
-        ledge01 = gameEngine.loadBitmap("notflappybirdassets/ledge01.png");
-        ledge02 = gameEngine.loadBitmap("notflappybirdassets/ledge02.png");
-        ledge = gameEngine.loadBitmap("notflappybirdassets/ledge.jpg");
-        spritesheet = gameEngine.loadBitmap("notflappybirdassets/flappy.png");
-
-
-        // Initialize all the ledges
-        createWorld();
-
-        // Initialize player
-        player = new Player(spritesheet, 200);
-
-
+        gameEngine.loadFont("notflappybirdassets/Square.ttf");
+        world = new World(gameEngine, player);
+        world.createWorld();
     }
 
-    // Things that needs to be updated during the game
+    // Graphics that needs to be updated during the game
     @Override
-    public void update(float deltaTime) {
+    public void update(float deltaTime)
+    {
+        globalTime++;
+
+        // Change sprite for player
+        if (globalTime % 8 == 0 && !player.getIsDead() && !isPaused)
+        {
+            // Keep changing the sprite until the end of the spritesheet
+            if (player.getAnimFrame() < player.getNumberOfSprites()-1) // Minus one because it should never be set to the actual number of sprites (0 indexing)
+            {
+                player.setAnimFrame();
+            }
+            else
+            {
+                player.setAnimFrame(0);
+            }
+        }
+
 
         // Draw the background
         gameEngine.drawBitMap(background, 0, 0);
 
-        // Draw the ledges. Needs to be updated because x positions keeps changing
-        int size = ledges.size();
 
-        for (int i = 0; i < size; i++) {
-            drawLedge(ledges.get(i));
+        // Draw the ledges. Needs to be updated because x positions keeps changing
+        int size = world.ledges.size();
+
+        for (int i = 0; i < size; i++)
+        {
+            drawLedge(world.ledges.get(i));
         }
 
         // Draw the player
         gameEngine.drawBitmap(
-                            spritesheet,
+                            player.getSpritesheet(),
                             player.getX(),                               // X coordinate for placing image on screen
                             player.getY(),                               // Y coordinate for placing image on screen
                             player.getAnimFrame()*player.getWIDTH(),     // Which part of the x axis to start drawing from
@@ -85,33 +83,53 @@ public class GameScreen extends Screen {
                             player.getHEIGHT()                           // Height of image (from source specified above)
         );
 
-        // Scrolling. Change the x position for all ledges at a constant rate
-        for (int i = 0; i < size; i++) {
-            ledges.get(i).setX();
-        }
+        // Draw score
+        gameEngine.drawText(font, ""+player.getScore(), 200, 100, 0, 60);
 
-        // Gravity
-        player.setY(player.getY()+GRAVITY);
 
-        // Move ledges
-        for (int i = 0; i < size; i++) {
-            if (ledges.get(i).getX() == -200){
-                ledges.get(i).moveLedge(900);
+        // Move ledges, when they go past the screen, to reuse
+        for (int i = 0; i < size; i++)
+        {
+            if (world.ledges.get(i).getX() == -200)
+            {
+                world.ledges.get(i).moveLedge(1200);
             }
         }
 
-
-        if (gameEngine.getTouchEvents().size() > 0) {
-            player.jump();
+        if (!isPaused) {
+            // Init game logic (move somewhere else)
+            if (!player.getIsDead())
+            {
+                world.scrolling();
+                world.gravity();
+                world.handleTouch();
+            }
+            // If he dies, start countdown, reset variables and go back to menu screen
+            else
+            {
+                deathCountdown++;
+                if (deathCountdown == 50)
+                {
+                    player.setIsDead(false);
+                    deathCountdown = 0;
+                    player.setScore();
+                    gameEngine.setScreen(new MainMenuScreen(gameEngine));
+                }
+            }
         }
+        else {
+            if (gameEngine.getTouchEvents().size() > 0) {
+                isPaused = false;
+            }
 
+        }
 
 
     }
 
     @Override
     public void pause() {
-
+        isPaused = true;
     }
 
     @Override
@@ -124,38 +142,14 @@ public class GameScreen extends Screen {
 
     }
 
-    // Draw all the ledges
-    private void createWorld() {
-        // Add ledges to list, with the correct attributes
-        // x, y, w, h
-        ledges.add(new Ledge(ledge, 300, 0, 80, 100));
-        ledges.add(new Ledge(ledge, 300, 250, 3, 100));
 
-        ledges.add(new Ledge(ledge, 600, 0, 80, 100));
-        ledges.add(new Ledge(ledge, 600, 270, 50, 100));
-
-        ledges.add(new Ledge(ledge, 900, 0, 80, 100));
-        ledges.add(new Ledge(ledge, 900, 270, 50, 100));
-    }
 
     // Create each individual ledge, and add collision detection for it
     private void drawLedge(Ledge ledge) {
         gameEngine.drawBitMap(ledge.getBitmap(), ledge.getX(), ledge.getY());
-        collisionDetectionLedges(ledge); // needs some parameters
+        CollisionDetection.collisionDetectionLedges(ledge, player);
+        CollisionDetection.countScore(ledge, player);
     }
 
-    // Check collision for a ledges and the player
-    private void collisionDetectionLedges(Ledge ledge) {
 
-        // If players x coordinate + players width is more than the x position of the top of the path
-        if(player.getX()+player.getWIDTH() > ledge.getX() && player.getX()<ledge.getX()+ledge.getWidth()){
-
-        /* If players y coordinate + players height is more than the top of the path and the players y coordinate
-         is less than the top of the path and the player is moving */
-            if(player.getY()+player.getHEIGHT() > ledge.getY() && player.getY() < ledge.getY()) {
-                player.setY(ledge.getY()-player.getHEIGHT()); // Players y position is y coordinate of ledge - mans height
-            }
-        }
-
-    }
 }
